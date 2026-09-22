@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Supabase 라이브러리 직접 로드 -->
+<!-- Supabase JS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -26,10 +26,8 @@
     padding-bottom:env(safe-area-inset-bottom,0px);
   }
   *,*::before,*::after{ box-sizing:inherit; }
-  html{ scroll-padding-top:env(safe-area-inset-top,0px); }
-  html,body{ margin:0; padding:0; min-height:100%; }
-  body{ font-family:var(--font-body); background:#0A0A0B; color:var(--ink); position:relative; overflow-x:hidden; }
-  input,textarea,button{ font-family:inherit; }
+  html,body{ margin:0; padding:0; min-height:100%; font-family:var(--font-body); background:#0A0A0B; color:var(--ink); position:relative; overflow-x:hidden; }
+  input,select,button{ font-family:inherit; }
   ::selection{ background:color-mix(in srgb, var(--accent) 45%, transparent); }
 
   .stage-bg{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
@@ -51,57 +49,50 @@
     opacity:0; transition:opacity .3s ease, transform .3s ease; pointer-events:none; }
   .save-indicator.show{ opacity:1; transform:translate(-50%,0); }
 
-  .top-bar{ position:sticky; top:env(safe-area-inset-top,0px); z-index:50; display:flex; justify-content:space-between; align-items:center; padding:16px 18px; gap:10px; }
-  .brand{ display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-size:15px; font-weight:500; color:var(--ink-dim); letter-spacing:-.01em; }
+  .top-bar{ position:sticky; top:env(safe-area-inset-top,0px); z-index:50; display:flex; justify-content:space-between; align-items:center; padding:16px 18px; }
+  .brand{ display:flex; align-items:center; gap:8px; font-family:var(--font-display); font-size:15px; font-weight:500; color:var(--ink-dim); }
   .brand .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
   .icon-btn{ appearance:none; border:1px solid var(--glass-border); cursor:pointer; width:38px; height:38px; border-radius:50%;
-    background:var(--glass-bg); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); color:var(--ink-dim);
-    display:flex; align-items:center; justify-content:center; transition:background .2s ease, color .2s ease; }
+    background:var(--glass-bg); backdrop-filter:blur(14px); color:var(--ink-dim); display:flex; align-items:center; justify-content:center; transition:background .2s; }
   .icon-btn:hover{ background:var(--glass-bg-strong); color:var(--ink); }
   .icon-btn svg{ width:16px; height:16px; }
-  .pill-btn{ appearance:none; border:1px solid var(--glass-border); cursor:pointer; padding:8px 14px; border-radius:999px;
-    background:var(--glass-bg); color:var(--ink-dim); font-size:12.5px; font-weight:600; display:inline-flex; align-items:center; gap:6px;
-    transition:background .2s ease, color .2s ease; }
-  .pill-btn:hover{ background:var(--glass-bg-strong); color:var(--ink); }
 
   .stage{ position:relative; z-index:2; min-height:calc(100vh - 70px); padding:10px 20px 90px; display:flex; flex-direction:column; align-items:center; }
   .screen{ display:none; width:100%; max-width:620px; }
-  .screen.active{ display:flex; flex-direction:column; align-items:center; animation:viewIn .5s cubic-bezier(.22,1,.36,1); }
-  @keyframes viewIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+  .screen.active{ display:flex; flex-direction:column; align-items:center; animation:viewIn .4s ease-out; }
+  @keyframes viewIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
 
   .head{ text-align:center; margin-bottom:22px; width:100%; }
-  .head h1{ font-family:var(--font-display); font-weight:500; font-size:clamp(26px,5vw,38px); line-height:1.18; color:var(--ink); margin:0 0 8px; letter-spacing:-0.01em; }
-  .head p{ margin:0; color:var(--ink-dim); font-weight:500; font-size:14.5px; }
+  .head h1{ font-family:var(--font-display); font-weight:500; font-size:clamp(26px,5vw,38px); margin:0 0 8px; }
+  .head p{ margin:0; color:var(--ink-dim); font-size:14.5px; }
 
-  .glass-card{ width:100%; background:var(--glass-bg); backdrop-filter:blur(22px) saturate(150%); -webkit-backdrop-filter:blur(22px) saturate(150%);
-    border:1px solid var(--glass-border); border-radius:24px; box-shadow:0 20px 50px -18px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08); padding:20px; }
+  .glass-card{ width:100%; background:var(--glass-bg); backdrop-filter:blur(22px); -webkit-backdrop-filter:blur(22px);
+    border:1px solid var(--glass-border); border-radius:24px; box-shadow:0 20px 50px -18px rgba(0,0,0,0.55); padding:20px; }
   .glass-card + .glass-card{ margin-top:14px; }
 
-  .gate-card{ max-width:400px; margin:0 auto; text-align:center; }
-  .gate-card h2{ font-family:var(--font-display); font-weight:500; font-size:20px; margin:0 0 6px; }
+  .gate-card{ max-width:400px; text-align:center; }
+  .gate-card h2{ font-family:var(--font-display); font-size:20px; margin:0 0 6px; }
   .gate-card p{ color:var(--ink-dim); font-size:13.5px; margin:0 0 18px; line-height:1.5; }
   .gate-input{ width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); border-radius:14px; padding:13px 15px;
-    color:var(--ink); font-size:14.5px; outline:none; margin-bottom:12px; transition:border-color .2s ease; }
+    color:var(--ink); font-size:14.5px; outline:none; margin-bottom:12px; }
   .gate-input:focus{ border-color:var(--accent); }
-  .primary-btn{ appearance:none; border:none; cursor:pointer; width:100%; padding:13px; border-radius:14px; background:var(--accent); color:#fff;
-    font-weight:700; font-size:14px; letter-spacing:.01em; transition:filter .2s ease; }
-  .primary-btn:hover{ filter:brightness(1.08); }
+  .primary-btn{ appearance:none; border:none; cursor:pointer; width:100%; padding:13px; border-radius:14px; background:var(--accent); color:#fff; font-weight:700; font-size:14px; transition:filter .2s; }
+  .primary-btn:hover{ filter:brightness(1.1); }
 
   .progress-wrap{ display:flex; flex-direction:column; align-items:center; gap:8px; margin:2px 0 24px; }
   .ring{ position:relative; width:100px; height:100px; }
   .ring svg{ width:100%; height:100%; display:block; }
   .ring .ring-track{ stroke:rgba(255,255,255,0.12); }
-  .ring .ring-progress{ stroke:var(--accent); stroke-dasharray:314.159265; transition:stroke-dashoffset .55s cubic-bezier(.22,1,.36,1); }
+  .ring .ring-progress{ stroke:var(--accent); stroke-dasharray:314.159265; transition:stroke-dashoffset .4s ease; }
   .ring-text{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
-  .ring-text .num{ font-weight:700; font-size:21px; color:var(--ink); }
-  .progress-caption{ font-size:12.5px; color:var(--ink-dim); font-weight:500; }
+  .ring-text .num{ font-weight:700; font-size:21px; }
 
   .row{ display:flex; align-items:center; gap:14px; padding:14px 4px; border-bottom:1px solid rgba(255,255,255,0.08); }
   .row:last-child{ border-bottom:none; }
-  .row-label{ flex:1 1 auto; font-weight:500; font-size:15px; color:var(--ink); word-break:break-word; }
+  .row-label{ flex:1 1 auto; font-weight:500; font-size:15px; word-break:break-word; }
   .row[data-checked="true"] .row-label{ color:var(--ink-faint); text-decoration:line-through; }
   .row-input{ flex:1 1 auto; font-weight:500; font-size:15px; color:var(--ink); background:transparent; border:none; outline:none; border-bottom:1px dashed rgba(255,255,255,0.22); padding:2px 0; }
-  .row-del{ background:transparent; border:none; color:var(--ink-dim); cursor:pointer; font-size:16px; opacity:.5; }
+  .row-del{ background:transparent; border:none; color:var(--ink-dim); cursor:pointer; font-size:16px; opacity:.45; width:24px; height:24px; }
   .row-del:hover{ opacity:1; color:#e07b74; }
 
   .toggle-sw{ flex:0 0 auto; width:46px; height:26px; border-radius:999px; border:1px solid rgba(255,255,255,0.16); cursor:pointer; position:relative; background:rgba(255,255,255,0.08); transition:all .28s; }
@@ -120,7 +111,13 @@
   .tab-panel{ display:none; width:100%; }
   .tab-panel.active{ display:block; }
 
-  .swatches{ display:flex; gap:9px; margin-bottom:18px; }
+  .switch-line{ display:flex; align-items:center; gap:9px; margin-bottom:16px; color:var(--ink-dim); font-size:13px; font-weight:600; }
+  .switch-line .grow{ flex:1; }
+  .switcher{ display:inline-flex; gap:2px; background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:999px; padding:4px; }
+  .switcher button{ border:none; cursor:pointer; padding:6px 12px; border-radius:999px; font-size:12px; background:transparent; color:var(--ink-dim); }
+  .switcher button.active{ background:var(--glass-bg-strong); color:var(--ink); }
+
+  .swatches{ display:flex; gap:9px; margin-bottom:18px; flex-wrap:wrap; }
   .swatches button{ width:22px; height:22px; border-radius:50%; border:none; cursor:pointer; }
   .swatches button.active{ outline:2px solid #fff; outline-offset:2px; }
 
@@ -128,17 +125,20 @@
   .stat-box{ background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:16px; padding:14px 10px; text-align:center; }
   .stat-box .n{ font-family:var(--font-display); font-size:22px; font-weight:600; }
   .stat-box .l{ font-size:11px; color:var(--ink-dim); margin-top:2px; }
+  .dash-toolbar{ display:flex; gap:8px; margin-bottom:12px; }
+  .dash-toolbar input, .dash-toolbar select{ background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); border-radius:10px; color:var(--ink); font-size:13px; padding:9px 11px; outline:none; }
+  .dash-toolbar input{ flex:1; }
 
   .sub-row{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.08); }
   .sub-name{ font-weight:600; font-size:14px; }
-  .sub-time{ font-size:11px; color:var(--ink-faint); }
+  .sub-time{ font-size:11px; color:var(--ink-faint); margin-top:2px; }
   .sub-bar-wrap{ flex:1; background:rgba(255,255,255,0.1); height:7px; border-radius:999px; overflow:hidden; }
   .sub-bar-fill{ height:100%; background:var(--accent); }
-  .sub-del{ background:transparent; border:none; color:var(--ink-faint); cursor:pointer; font-size:16px; }
+  .sub-pct{ font-weight:700; font-size:13px; width:38px; text-align:right; }
 
-  .modal-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); opacity:0; pointer-events:none; transition:opacity .2s; }
+  .modal-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.65); opacity:0; pointer-events:none; transition:opacity .2s; }
   .modal-overlay.show{ opacity:1; pointer-events:auto; }
-  .modal-card{ width:90%; max-width:340px; background:#18181B; border:1px solid var(--glass-border); border-radius:20px; padding:22px; }
+  .modal-card{ width:90%; max-width:360px; background:#18181B; border:1px solid var(--glass-border); border-radius:20px; padding:22px; }
   .modal-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
   .modal-btn{ padding:8px 14px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
   .modal-btn-ghost{ background:rgba(255,255,255,0.1); color:#fff; }
@@ -161,20 +161,20 @@
   </div>
 
   <div class="stage">
-    <!-- 게이트 (이름 입력) -->
-    <section class="screen" id="screen-gate">
+    <!-- 1. 게이트 화면 -->
+    <section class="screen active" id="screen-gate">
       <div class="head"><h1 id="gate-title">체크리스트 제출함</h1><p id="gate-subtitle"></p></div>
       <div class="glass-card gate-card">
         <h2>제출자 정보</h2>
         <p>이름 또는 구분값을 입력하면 관리자가 확인할 수 있어요.</p>
-        <input class="gate-input" id="gate-name-input" placeholder="이름 (예: 홍길동)" maxlength="40">
+        <input class="gate-input" id="gate-name-input" placeholder="이름 (예: 홍길동, 1팀 김OO)">
         <button type="button" class="primary-btn" id="gate-start-btn">시작하기</button>
       </div>
     </section>
 
-    <!-- 제출 화면 -->
+    <!-- 2. 제출자 작성 화면 -->
     <section class="screen" id="screen-submit">
-      <div class="head"><h1 id="submit-title">체크리스트 제출함</h1><p id="submit-subtitle"></p></div>
+      <div class="head"><h1 id="submit-title">체크리스트</h1><p id="submit-subtitle"></p></div>
       <div class="progress-wrap">
         <div class="ring">
           <svg viewBox="0 0 120 120">
@@ -183,13 +183,13 @@
           </svg>
           <div class="ring-text"><span class="num" id="submit-ring-num">0%</span></div>
         </div>
-        <div class="progress-caption" id="submit-caption">0 / 0 완료</div>
+        <div style="font-size:12.5px; color:var(--ink-dim);" id="submit-caption">0 / 0 완료</div>
       </div>
       <div class="glass-card"><div id="submit-list"></div></div>
-      <div class="link-line"><button type="button" id="switch-person-btn">제출자 변경</button></div>
+      <div class="link-line"><button type="button" id="switch-person-btn">제출자 변경 (새 이름으로 시작)</button></div>
     </section>
 
-    <!-- 관리자 모드 -->
+    <!-- 3. 관리자 화면 -->
     <section class="screen" id="screen-admin">
       <div class="head"><h1>관리자 모드</h1></div>
       <div class="tabs">
@@ -197,6 +197,7 @@
         <button type="button" class="tab-btn" id="tab-btn-dash">제출 현황</button>
       </div>
 
+      <!-- 탭 1: 양식 관리 -->
       <div class="tab-panel active" id="tab-form">
         <div class="glass-card">
           <div style="font-size:12px; margin-bottom:6px; color:var(--ink-faint);">제목 / 부제목</div>
@@ -206,21 +207,54 @@
           <div style="font-size:12px; margin-bottom:6px; color:var(--ink-faint);">포인트 컬러</div>
           <div class="swatches" id="admin-swatches"></div>
 
-          <div style="font-size:12px; margin-bottom:6px; color:var(--ink-faint);">항목 관리</div>
+          <div class="switch-line">
+            <span>표시 스타일</span><div class="grow"></div>
+            <div class="switcher" id="style-switcher">
+              <button type="button" data-style="toggle" class="active">토글형</button>
+              <button type="button" data-style="checkbox">체크박스형</button>
+            </div>
+          </div>
+
+          <div class="switch-line">
+            <span>복수 선택 허용</span><div class="grow"></div>
+            <div class="switcher" id="multi-switcher">
+              <button type="button" data-val="true" class="active">허용</button>
+              <button type="button" data-val="false">단일선택</button>
+            </div>
+          </div>
+
+          <div style="font-size:12px; margin-bottom:6px; color:var(--ink-faint);">체크 항목 목록</div>
           <div id="admin-item-list"></div>
           <button type="button" class="modal-btn modal-btn-ghost" id="admin-add-btn" style="width:100%; margin-top:10px;">+ 항목 추가</button>
         </div>
+
+        <div class="glass-card">
+          <div style="font-size:12px; margin-bottom:6px; color:var(--ink-faint);">관리자 비밀번호 변경</div>
+          <input class="gate-input" id="admin-pw-change" placeholder="새 비밀번호 (비워두면 기존 유지)">
+        </div>
+
         <button type="button" class="primary-btn" id="admin-save-btn" style="margin-top:14px;">저장 및 배포</button>
       </div>
 
+      <!-- 탭 2: 대시보드 -->
       <div class="tab-panel" id="tab-dash">
         <div class="stat-grid">
           <div class="stat-box"><div class="n" id="stat-count">0</div><div class="l">제출 인원</div></div>
           <div class="stat-box"><div class="n" id="stat-avg">0%</div><div class="l">평균 진행률</div></div>
           <div class="stat-box"><div class="n" id="stat-complete">0</div><div class="l">완료 인원</div></div>
         </div>
+        <div class="dash-toolbar">
+          <input id="dash-search" placeholder="이름으로 검색">
+          <select id="dash-sort">
+            <option value="recent">최근 업데이트순</option>
+            <option value="pct-desc">진행률 높은순</option>
+            <option value="pct-asc">진행률 낮은순</option>
+            <option value="name">이름순</option>
+          </select>
+        </div>
         <div class="glass-card"><div id="dash-list"></div></div>
       </div>
+
       <div class="link-line"><button type="button" id="admin-logout-btn">관리자 모드 종료</button></div>
     </section>
   </div>
@@ -238,43 +272,55 @@
   </div>
 
 <script>
-// ================= [Supabase 연결 설정] =================
+// ================= [Supabase 연결 정보] =================
 const SUPABASE_URL = 'https://zwuklkzgndfxvhghxmqj.supabase.co';
-// 아래 따옴표 안에 복사해두신 키(service_role 또는 anon 키)를 붙여넣으세요!
-const SUPABASE_KEY = 'YOUR_SUPABASE_KEY'; 
+// 주신 anon 키를 바로 적용했습니다.
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3dWtsa3pnbmRmeHZoZ2h4bXFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwNDkwODIsImV4cCI6MjEwNTYyNTA4Mn0.p1mznrNeU6_BaFcnbxnNbrCk9yP4rUzeRHHuSuQhz8M';
+
+// 이전 잘못 저장된 키 캐시 제거
+localStorage.removeItem('sb_app_key');
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const PALETTE = ['#203F9A','#4E7CB2','#94C2DA','#E84797','#F1642E','#A3B565','#504E76','#C4C3E3'];
-let config = { title: '체크리스트 제출함', subtitle: '', accent: '#4E7CB2', style: 'toggle', multi: true, items: [], password: 'admin1234' };
+let config = { 
+  title: '체크리스트 제출함', subtitle: '', accent: '#4E7CB2', style: 'toggle', multi: true, 
+  items: [{id:'it_1', text:'첫 번째 할 일'}, {id:'it_2', text:'두 번째 할 일'}], 
+  password: 'admin1234' 
+};
 let subId = localStorage.getItem('subId') || null;
 let subName = localStorage.getItem('subName') || null;
 let mySub = null;
 let isAdmin = false;
+let allSubs = [];
 
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function showNotice(msg){
   const el = document.getElementById('save-indicator');
   el.textContent = msg; el.classList.add('show');
   setTimeout(()=> el.classList.remove('show'), 1500);
 }
-
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
+// 1. 설정 불러오기
 async function loadConfig(){
-  const { data } = await db.from('checklist_config').select('*').eq('id', 1).single();
-  if(data) {
-    config = { ...config, ...data };
-    if(!config.items || config.items.length === 0){
-      config.items = [{id:'1', text:'첫 번째 할 일'}, {id:'2', text:'두 번째 할 일'}];
+  try {
+    const { data, error } = await db.from('checklist_config').select('*').eq('id', 1).maybeSingle();
+    if(data) {
+      config = { ...config, ...data };
+      if(!Array.isArray(config.items) || config.items.length === 0){
+        config.items = [{id:'it_1', text:'첫 번째 할 일'}, {id:'it_2', text:'두 번째 할 일'}];
+      }
     }
+  } catch(err) {
+    console.error('설정 로드 실패:', err);
   }
-  document.documentElement.style.setProperty('--accent', config.accent);
+  document.documentElement.style.setProperty('--accent', config.accent || '#4E7CB2');
   document.getElementById('brand-label').textContent = config.title;
   document.getElementById('gate-title').textContent = config.title;
   document.getElementById('gate-subtitle').textContent = config.subtitle || '';
@@ -282,25 +328,46 @@ async function loadConfig(){
   document.getElementById('submit-subtitle').textContent = config.subtitle || '';
 }
 
+// 2. 제출자 등록 및 시작
 async function startSubmitting(){
   const name = document.getElementById('gate-name-input').value.trim();
-  if(!name) return;
-  const { data } = await db.from('submissions').insert({ name, checks: {} }).select().single();
-  if(data){
-    subId = data.id; subName = name;
-    localStorage.setItem('subId', subId);
-    localStorage.setItem('subName', subName);
-    enterSubmitter();
+  if(!name){
+    alert('이름을 입력해주세요!');
+    return;
+  }
+
+  try {
+    const { data, error } = await db.from('submissions').insert([{ name, checks: {} }]).select().single();
+    if(error){
+      alert('DB 오류: ' + error.message + '\n(Supabase SQL Editor에서 RLS 해제 쿼리를 실행했는지 확인해주세요)');
+      return;
+    }
+    if(data){
+      subId = data.id; 
+      subName = name;
+      localStorage.setItem('subId', subId);
+      localStorage.setItem('subName', subName);
+      enterSubmitter();
+    }
+  } catch(err) {
+    alert('연결 에러: ' + err.message);
   }
 }
 
+// 3. 제출자 화면 진입
 async function enterSubmitter(){
   showScreen('screen-submit');
-  const { data } = await db.from('submissions').select('*').eq('id', subId).single();
-  mySub = data || { checks: {} };
+  if(!subId) return;
+  try {
+    const { data } = await db.from('submissions').select('*').eq('id', subId).maybeSingle();
+    mySub = data || { checks: {} };
+  } catch(e) {
+    mySub = { checks: {} };
+  }
   renderSubmit();
 }
 
+// 4. 체크리스트 렌더링
 function renderSubmit(){
   const checks = mySub?.checks || {};
   const items = config.items || [];
@@ -313,27 +380,41 @@ function renderSubmit(){
   document.getElementById('submit-caption').textContent = `${checked} / ${items.length} 완료`;
 
   const list = document.getElementById('submit-list');
+  const isCheckbox = config.style === 'checkbox';
+
   list.innerHTML = items.map(it => {
     const on = !!checks[it.id];
+    const ctrl = isCheckbox
+      ? `<button type="button" class="checkbox-sq" aria-pressed="${on}" onclick="toggleItem('${it.id}')"><svg viewBox="0 0 24 24"><polyline points="4,13 9,18 20,6"/></svg></button>`
+      : `<button type="button" class="toggle-sw" aria-pressed="${on}" onclick="toggleItem('${it.id}')"><span class="thumb"></span></button>`;
     return `
       <div class="row" data-checked="${on}">
-        <button type="button" class="toggle-sw" aria-pressed="${on}" onclick="toggleItem('${it.id}')"><span class="thumb"></span></button>
-        <div class="row-label">${it.text}</div>
+        ${ctrl}
+        <div class="row-label">${esc(it.text)}</div>
       </div>
     `;
-  }).join('');
+  }).join('') || '<div style="text-align:center; padding:20px; color:var(--ink-faint);">등록된 항목이 없습니다.</div>';
 }
 
+// 5. 체크 토글
 async function toggleItem(id){
   const checks = { ...(mySub?.checks || {}) };
-  checks[id] = !checks[id];
+  const willOn = !checks[id];
+  
+  if(!config.multi && willOn) {
+    Object.keys(checks).forEach(k => checks[k] = false);
+  }
+  checks[id] = willOn;
   mySub.checks = checks;
   renderSubmit();
-  await db.from('submissions').update({ checks, updated_at: new Date().toISOString() }).eq('id', subId);
-  showNotice('저장됨');
+
+  try {
+    const { error } = await db.from('submissions').update({ checks, updated_at: new Date().toISOString() }).eq('id', subId);
+    if(!error) showNotice('저장됨');
+  } catch(e){}
 }
 
-// 관리자 로직
+// 6. 관리자 모드
 document.getElementById('lock-btn').onclick = () => {
   if(isAdmin) showAdmin();
   else openModal('login-modal');
@@ -341,25 +422,27 @@ document.getElementById('lock-btn').onclick = () => {
 
 document.getElementById('login-confirm-btn').onclick = () => {
   const pw = document.getElementById('login-pw-input').value;
-  if(pw === config.password || pw === 'admin1234'){
+  if(pw === (config.password || 'admin1234')){
     isAdmin = true;
     closeModal('login-modal');
     showAdmin();
   } else {
-    alert('비밀번호가 맞지 않습니다.');
+    alert('비밀번호가 올바르지 않습니다.');
   }
 };
+document.getElementById('login-pw-input').onkeydown = (e) => { if(e.key === 'Enter') document.getElementById('login-confirm-btn').click(); };
 
 function showAdmin(){
   showScreen('screen-admin');
   document.getElementById('admin-title').value = config.title;
   document.getElementById('admin-subtitle').value = config.subtitle || '';
   
-  // 색상 팔레트
   const sw = document.getElementById('admin-swatches');
   sw.innerHTML = PALETTE.map(c => `<button style="background:${c}" class="${config.accent===c?'active':''}" onclick="setAccent('${c}')"></button>`).join('');
 
-  // 항목 리스트
+  document.querySelectorAll('#style-switcher button').forEach(b => b.classList.toggle('active', b.dataset.style === config.style));
+  document.querySelectorAll('#multi-switcher button').forEach(b => b.classList.toggle('active', (b.dataset.val === 'true') === config.multi));
+
   renderAdminItems();
   loadDashboard();
 }
@@ -374,57 +457,97 @@ function renderAdminItems(){
   const list = document.getElementById('admin-item-list');
   list.innerHTML = config.items.map((it, i) => `
     <div class="row">
-      <input class="row-input" value="${it.text}" oninput="config.items[${i}].text = this.value">
+      <input class="row-input" value="${esc(it.text)}" oninput="config.items[${i}].text = this.value">
       <button class="row-del" onclick="config.items.splice(${i},1); renderAdminItems();">×</button>
     </div>
   `).join('');
 }
 
 document.getElementById('admin-add-btn').onclick = () => {
-  config.items.push({ id: 'it_' + Date.now(), text: '' });
+  config.items.push({ id: 'it_' + Date.now().toString(36), text: '' });
   renderAdminItems();
 };
 
-document.getElementById('admin-save-btn').onclick = async () => {
-  config.title = document.getElementById('admin-title').value;
-  config.subtitle = document.getElementById('admin-subtitle').value;
-  await db.from('checklist_config').update(config).eq('id', 1);
-  showNotice('배포 완료');
-  loadConfig();
+document.getElementById('style-switcher').onclick = (e) => {
+  const btn = e.target.closest('button[data-style]');
+  if(btn){ config.style = btn.dataset.style; showAdmin(); }
+};
+document.getElementById('multi-switcher').onclick = (e) => {
+  const btn = e.target.closest('button[data-val]');
+  if(btn){ config.multi = (btn.dataset.val === 'true'); showAdmin(); }
 };
 
+document.getElementById('admin-save-btn').onclick = async () => {
+  config.title = document.getElementById('admin-title').value.trim() || '체크리스트';
+  config.subtitle = document.getElementById('admin-subtitle').value.trim();
+  const newPw = document.getElementById('admin-pw-change').value.trim();
+  if(newPw) config.password = newPw;
+
+  try {
+    const { error } = await db.from('checklist_config').upsert({ id: 1, ...config, updated_at: new Date().toISOString() });
+    if(error) alert('양식 저장 실패: ' + error.message);
+    else {
+      showNotice('배포 완료');
+      loadConfig();
+    }
+  } catch(err){ alert('오류: ' + err.message); }
+};
+
+// 대시보드
 async function loadDashboard(){
-  const { data } = await db.from('submissions').select('*').order('updated_at', { ascending: false });
-  const subs = data || [];
-  document.getElementById('stat-count').textContent = subs.length;
-  
+  try {
+    const { data } = await db.from('submissions').select('*').order('updated_at', { ascending: false });
+    allSubs = data || [];
+    renderDashboard();
+  } catch(e){}
+}
+
+function renderDashboard(){
+  const q = (document.getElementById('dash-search').value || '').trim().toLowerCase();
+  const sort = document.getElementById('dash-sort').value;
   const total = config.items.length;
-  let comp = 0;
-  const list = document.getElementById('dash-list');
-  list.innerHTML = subs.map(s => {
+
+  let list = allSubs.map(s => {
     const cCount = config.items.filter(it => s.checks && s.checks[it.id]).length;
     const pct = total ? Math.round(cCount / total * 100) : 0;
-    if(pct === 100) comp++;
-    return `
-      <div class="sub-row">
-        <div><div class="sub-name">${s.name}</div><div class="sub-time">${cCount}/${total}</div></div>
-        <div class="sub-bar-wrap"><div class="sub-bar-fill" style="width:${pct}%"></div></div>
-        <div style="font-size:12px; font-weight:bold; width:35px; text-align:right;">${pct}%</div>
-        <button class="sub-del" onclick="delSub('${s.id}')">×</button>
+    return { ...s, cCount, pct };
+  });
+
+  if(q) list = list.filter(s => s.name.toLowerCase().includes(q));
+
+  if(sort === 'pct-desc') list.sort((a,b) => b.pct - a.pct);
+  else if(sort === 'pct-asc') list.sort((a,b) => a.pct - b.pct);
+  else if(sort === 'name') list.sort((a,b) => a.name.localeCompare(b.name, 'ko'));
+
+  document.getElementById('stat-count').textContent = allSubs.length;
+  const avg = allSubs.length ? Math.round(list.reduce((acc,cur)=>acc+cur.pct, 0) / allSubs.length) : 0;
+  document.getElementById('stat-avg').textContent = avg + '%';
+  document.getElementById('stat-complete').textContent = allSubs.filter(s => s.pct === 100).length;
+
+  const el = document.getElementById('dash-list');
+  el.innerHTML = list.map(s => `
+    <div class="sub-row">
+      <div style="min-width:90px;">
+        <div class="sub-name">${esc(s.name)}</div>
+        <div class="sub-time">${s.cCount}/${total} 완료</div>
       </div>
-    `;
-  }).join('') || '<div style="text-align:center; color:var(--ink-faint); padding:20px;">제출 내역이 없습니다.</div>';
-  document.getElementById('stat-complete').textContent = comp;
+      <div class="sub-bar-wrap"><div class="sub-bar-fill" style="width:${s.pct}%"></div></div>
+      <div class="sub-pct">${s.pct}%</div>
+      <button class="row-del" onclick="delSub('${s.id}')">×</button>
+    </div>
+  `).join('') || '<div style="text-align:center; color:var(--ink-faint); padding:20px;">제출 내역이 없습니다.</div>';
 }
 
 async function delSub(id){
-  if(confirm('삭제하시겠습니까?')){
+  if(confirm('이 제출 내역을 삭제할까요? 되돌릴 수 없습니다.')){
     await db.from('submissions').delete().eq('id', id);
     loadDashboard();
   }
 }
 
-// 탭 전환
+document.getElementById('dash-search').oninput = renderDashboard;
+document.getElementById('dash-sort').onchange = renderDashboard;
+
 document.getElementById('tab-btn-form').onclick = () => {
   document.getElementById('tab-btn-form').classList.add('active');
   document.getElementById('tab-btn-dash').classList.remove('active');
@@ -440,19 +563,28 @@ document.getElementById('tab-btn-dash').onclick = () => {
 };
 
 document.getElementById('gate-start-btn').onclick = startSubmitting;
+document.getElementById('gate-name-input').onkeydown = (e) => { if(e.key === 'Enter') startSubmitting(); };
+
 document.getElementById('switch-person-btn').onclick = () => {
-  localStorage.clear(); subId = null; showScreen('screen-gate');
+  localStorage.removeItem('subId');
+  localStorage.removeItem('subName');
+  subId = null; subName = null; mySub = null;
+  document.getElementById('gate-name-input').value = '';
+  showScreen('screen-gate');
 };
 document.getElementById('admin-logout-btn').onclick = () => {
   isAdmin = false;
   subId ? enterSubmitter() : showScreen('screen-gate');
 };
 
-// 시작
+// 최초 실행
 (async () => {
   await loadConfig();
-  if(subId) enterSubmitter();
-  else showScreen('screen-gate');
+  if(subId && /^[0-9a-f-]{36}$/i.test(subId)) {
+    enterSubmitter();
+  } else {
+    showScreen('screen-gate');
+  }
 })();
 </script>
 </body>

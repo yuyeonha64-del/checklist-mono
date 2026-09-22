@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>체크리스트 제출함</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Supabase 라이브러리 직접 로드 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --accent:#4E7CB2;
@@ -66,144 +68,83 @@
   .screen{ display:none; width:100%; max-width:620px; }
   .screen.active{ display:flex; flex-direction:column; align-items:center; animation:viewIn .5s cubic-bezier(.22,1,.36,1); }
   @keyframes viewIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
-  @media (prefers-reduced-motion: reduce){ .screen.active{ animation:none; } .row-enter{ animation:none; } .modal-card{ transition:none; } }
 
   .head{ text-align:center; margin-bottom:22px; width:100%; }
   .head h1{ font-family:var(--font-display); font-weight:500; font-size:clamp(26px,5vw,38px); line-height:1.18; color:var(--ink); margin:0 0 8px; letter-spacing:-0.01em; }
   .head p{ margin:0; color:var(--ink-dim); font-weight:500; font-size:14.5px; }
-  .head p:empty{ display:none; }
 
   .glass-card{ width:100%; background:var(--glass-bg); backdrop-filter:blur(22px) saturate(150%); -webkit-backdrop-filter:blur(22px) saturate(150%);
     border:1px solid var(--glass-border); border-radius:24px; box-shadow:0 20px 50px -18px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08); padding:20px; }
   .glass-card + .glass-card{ margin-top:14px; }
 
-  /* ---- name gate ---- */
   .gate-card{ max-width:400px; margin:0 auto; text-align:center; }
   .gate-card h2{ font-family:var(--font-display); font-weight:500; font-size:20px; margin:0 0 6px; }
   .gate-card p{ color:var(--ink-dim); font-size:13.5px; margin:0 0 18px; line-height:1.5; }
   .gate-input{ width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); border-radius:14px; padding:13px 15px;
     color:var(--ink); font-size:14.5px; outline:none; margin-bottom:12px; transition:border-color .2s ease; }
-  .gate-input::placeholder{ color:var(--ink-faint); }
   .gate-input:focus{ border-color:var(--accent); }
   .primary-btn{ appearance:none; border:none; cursor:pointer; width:100%; padding:13px; border-radius:14px; background:var(--accent); color:#fff;
-    font-weight:700; font-size:14px; letter-spacing:.01em; transition:filter .2s ease, opacity .2s ease; }
+    font-weight:700; font-size:14px; letter-spacing:.01em; transition:filter .2s ease; }
   .primary-btn:hover{ filter:brightness(1.08); }
-  .primary-btn:disabled{ opacity:.5; cursor:not-allowed; }
 
-  /* ---- progress ring ---- */
   .progress-wrap{ display:flex; flex-direction:column; align-items:center; gap:8px; margin:2px 0 24px; }
   .ring{ position:relative; width:100px; height:100px; }
   .ring svg{ width:100%; height:100%; display:block; }
   .ring .ring-track{ stroke:rgba(255,255,255,0.12); }
-  .ring .ring-progress{ stroke:var(--accent); stroke-dasharray:314.159265; transition:stroke-dashoffset .55s cubic-bezier(.22,1,.36,1), stroke .4s ease; }
+  .ring .ring-progress{ stroke:var(--accent); stroke-dasharray:314.159265; transition:stroke-dashoffset .55s cubic-bezier(.22,1,.36,1); }
   .ring-text{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
-  .ring-text .num{ font-weight:700; font-size:21px; color:var(--ink); line-height:1; letter-spacing:-0.01em; }
+  .ring-text .num{ font-weight:700; font-size:21px; color:var(--ink); }
   .progress-caption{ font-size:12.5px; color:var(--ink-dim); font-weight:500; }
 
   .row{ display:flex; align-items:center; gap:14px; padding:14px 4px; border-bottom:1px solid rgba(255,255,255,0.08); }
   .row:last-child{ border-bottom:none; }
-  .row-label{ flex:1 1 auto; font-weight:500; font-size:15px; color:var(--ink); padding:2px 0; word-break:break-word; }
-  .row[data-checked="true"] .row-label{ color:var(--ink-faint); text-decoration:line-through; text-decoration-color:rgba(244,243,241,0.3); }
-  .row-input{ flex:1 1 auto; font-weight:500; font-size:15px; color:var(--ink); background:transparent; border:none; outline:none;
-    border-bottom:1px dashed transparent; padding:2px 0; min-width:0; }
-  .row-input::placeholder{ color:var(--ink-faint); font-weight:400; }
-  .row-input:hover, .row-input:focus{ border-bottom-color:rgba(255,255,255,0.22); }
-  .row-del{ flex:0 0 auto; width:24px; height:24px; border-radius:50%; border:none; cursor:pointer; background:transparent; color:var(--ink-dim); opacity:.45; font-size:16px; line-height:1; transition:opacity .15s ease, background .15s ease; }
-  .row-del:hover{ opacity:.9; background:rgba(255,255,255,0.08); }
-  .add-btn{ margin:10px 0 0; padding:13px; border-radius:14px; border:1px dashed rgba(255,255,255,0.22); background:transparent; color:var(--ink-dim);
-    font-weight:600; font-size:13.5px; cursor:pointer; width:100%; transition:background .2s ease, color .2s ease, border-color .2s ease; }
-  .add-btn:hover{ background:rgba(255,255,255,0.06); color:var(--ink); border-color:rgba(255,255,255,0.35); }
+  .row-label{ flex:1 1 auto; font-weight:500; font-size:15px; color:var(--ink); word-break:break-word; }
+  .row[data-checked="true"] .row-label{ color:var(--ink-faint); text-decoration:line-through; }
+  .row-input{ flex:1 1 auto; font-weight:500; font-size:15px; color:var(--ink); background:transparent; border:none; outline:none; border-bottom:1px dashed rgba(255,255,255,0.22); padding:2px 0; }
+  .row-del{ background:transparent; border:none; color:var(--ink-dim); cursor:pointer; font-size:16px; opacity:.5; }
+  .row-del:hover{ opacity:1; color:#e07b74; }
 
-  .toggle-sw{ flex:0 0 auto; width:46px; height:26px; border-radius:999px; border:1px solid rgba(255,255,255,0.16); cursor:pointer; position:relative; background:rgba(255,255,255,0.08); transition:background .28s ease, border-color .28s ease; }
-  .toggle-sw .thumb{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--ink-dim); box-shadow:0 2px 6px rgba(0,0,0,0.3); transition:transform .28s cubic-bezier(.4,0,.2,1), background .28s ease; }
+  .toggle-sw{ flex:0 0 auto; width:46px; height:26px; border-radius:999px; border:1px solid rgba(255,255,255,0.16); cursor:pointer; position:relative; background:rgba(255,255,255,0.08); transition:all .28s; }
+  .toggle-sw .thumb{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--ink-dim); transition:transform .28s; }
   .toggle-sw[aria-pressed="true"]{ background:color-mix(in srgb, var(--accent) 60%, transparent); border-color:var(--accent); }
   .toggle-sw[aria-pressed="true"] .thumb{ transform:translateX(20px); background:#fff; }
-  .checkbox-sq{ flex:0 0 auto; width:22px; height:22px; border-radius:6px; border:1.4px solid rgba(255,255,255,0.3); position:relative; background:rgba(255,255,255,0.04); cursor:pointer; transition:background .2s ease, border-color .2s ease; }
-  .checkbox-sq svg{ position:absolute; inset:0; margin:auto; width:13px; height:13px; stroke:#fff; stroke-width:2.6; fill:none; stroke-dasharray:20; stroke-dashoffset:20; transition:stroke-dashoffset .25s ease .02s; pointer-events:none; }
+
+  .checkbox-sq{ flex:0 0 auto; width:22px; height:22px; border-radius:6px; border:1.4px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.04); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .checkbox-sq svg{ width:13px; height:13px; stroke:#fff; stroke-width:2.6; fill:none; display:none; }
   .checkbox-sq[aria-pressed="true"]{ background:var(--accent); border-color:var(--accent); }
-  .checkbox-sq[aria-pressed="true"] svg{ stroke-dashoffset:0; }
-  .mini-toggle{ width:36px; height:21px; border-radius:999px; border:1px solid var(--glass-border); cursor:pointer; position:relative; background:rgba(255,255,255,0.08); flex:0 0 auto; }
-  .mini-toggle .dot{ position:absolute; top:2px; left:2px; width:15px; height:15px; border-radius:50%; background:var(--ink-dim); transition:transform .25s cubic-bezier(.4,0,.2,1), background .25s ease; }
-  .mini-toggle[aria-pressed="true"]{ background:color-mix(in srgb, var(--accent) 55%, transparent); border-color:var(--accent); }
-  .mini-toggle[aria-pressed="true"] .dot{ transform:translateX(15px); background:#fff; }
-  .row-enter{ animation:rowIn .35s cubic-bezier(.22,1,.36,1); }
-  @keyframes rowIn{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:translateY(0); } }
+  .checkbox-sq[aria-pressed="true"] svg{ display:block; }
 
-  .switch-line{ display:flex; align-items:center; gap:9px; margin-bottom:16px; color:var(--ink-dim); font-size:13px; font-weight:600; }
-  .switch-line .grow{ flex:1 1 auto; }
-  .switcher{ position:relative; display:inline-flex; gap:2px; background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:999px; padding:4px; }
-  .switcher button{ appearance:none; border:none; cursor:pointer; padding:8px 15px; border-radius:999px; font-size:12.5px; font-weight:600; background:transparent; color:var(--ink-dim); transition:background .3s ease, color .3s ease; }
-  .switcher button.active{ background:var(--glass-bg-strong); color:var(--ink); box-shadow:inset 0 0 0 1px var(--glass-border); }
-
-  .swatches{ display:flex; gap:9px; margin-bottom:18px; flex-wrap:wrap; }
-  .swatches button{ width:22px; height:22px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.25); cursor:pointer; padding:0; transition:transform .2s ease, box-shadow .2s ease; }
-  .swatches button:hover{ transform:scale(1.15); }
-  .swatches button.active{ border-color:#fff; box-shadow:0 0 0 3px rgba(255,255,255,0.18); }
-
-  .field-label{ font-size:12px; font-weight:700; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em; margin:0 0 8px; }
-  .admin-title-input{ width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); border-radius:12px; padding:11px 13px; color:var(--ink); font-size:14px; outline:none; margin-bottom:14px; }
-  .admin-title-input:focus{ border-color:var(--accent); }
-  h1.admin-title-input{ font-family:var(--font-display); font-size:20px; }
-
-  /* ---- tabs (admin) ---- */
   .tabs{ display:flex; gap:8px; margin-bottom:16px; width:100%; }
-  .tab-btn{ flex:1 1 auto; appearance:none; border:1px solid var(--glass-border); cursor:pointer; padding:11px; border-radius:14px; background:var(--glass-bg); color:var(--ink-dim); font-weight:700; font-size:13px; transition:background .2s ease, color .2s ease; }
-  .tab-btn.active{ background:var(--glass-bg-strong); color:var(--ink); box-shadow:inset 0 0 0 1px var(--accent); }
+  .tab-btn{ flex:1; padding:11px; border-radius:14px; background:var(--glass-bg); color:var(--ink-dim); border:1px solid var(--glass-border); cursor:pointer; font-weight:700; }
+  .tab-btn.active{ background:var(--glass-bg-strong); color:var(--ink); border-color:var(--accent); }
   .tab-panel{ display:none; width:100%; }
   .tab-panel.active{ display:block; }
 
-  /* ---- dashboard ---- */
+  .swatches{ display:flex; gap:9px; margin-bottom:18px; }
+  .swatches button{ width:22px; height:22px; border-radius:50%; border:none; cursor:pointer; }
+  .swatches button.active{ outline:2px solid #fff; outline-offset:2px; }
+
   .stat-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px; }
   .stat-box{ background:var(--glass-bg); border:1px solid var(--glass-border); border-radius:16px; padding:14px 10px; text-align:center; }
-  .stat-box .n{ font-family:var(--font-display); font-size:22px; font-weight:600; color:var(--ink); }
+  .stat-box .n{ font-family:var(--font-display); font-size:22px; font-weight:600; }
   .stat-box .l{ font-size:11px; color:var(--ink-dim); margin-top:2px; }
-  .dash-toolbar{ display:flex; gap:8px; margin-bottom:12px; }
-  .dash-toolbar input, .dash-toolbar select{ background:rgba(255,255,255,0.06); border:1px solid var(--glass-border); border-radius:10px; color:var(--ink); font-size:13px; padding:9px 11px; outline:none; }
-  .dash-toolbar input{ flex:1 1 auto; min-width:0; }
-  .dash-toolbar input::placeholder{ color:var(--ink-faint); }
-  .sub-row{ display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid rgba(255,255,255,0.08); }
-  .sub-row:last-child{ border-bottom:none; }
-  .sub-name{ font-weight:600; font-size:14px; color:var(--ink); }
-  .sub-time{ font-size:11.5px; color:var(--ink-faint); margin-top:1px; }
-  .sub-bar-wrap{ flex:1 1 auto; min-width:70px; }
-  .sub-bar-track{ background:rgba(255,255,255,0.1); border-radius:999px; height:7px; overflow:hidden; }
-  .sub-bar-fill{ height:100%; background:var(--accent); border-radius:999px; transition:width .4s ease; }
-  .sub-pct{ font-weight:700; font-size:13px; width:40px; text-align:right; flex:0 0 auto; }
-  .sub-del{ flex:0 0 auto; width:26px; height:26px; border-radius:50%; border:none; background:transparent; color:var(--ink-faint); cursor:pointer; font-size:15px; }
-  .sub-del:hover{ background:rgba(255,255,255,0.08); color:#e07b74; }
-  .empty-note{ text-align:center; color:var(--ink-faint); font-size:13px; padding:26px 10px; }
 
-  .link-line{ text-align:center; margin-top:18px; }
-  .link-line button{ appearance:none; border:none; background:transparent; color:var(--ink-faint); font-size:12.5px; cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
-  .link-line button:hover{ color:var(--ink-dim); }
-  .helper-note{ font-size:12px; color:var(--ink-faint); line-height:1.6; margin-top:14px; }
+  .sub-row{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.08); }
+  .sub-name{ font-weight:600; font-size:14px; }
+  .sub-time{ font-size:11px; color:var(--ink-faint); }
+  .sub-bar-wrap{ flex:1; background:rgba(255,255,255,0.1); height:7px; border-radius:999px; overflow:hidden; }
+  .sub-bar-fill{ height:100%; background:var(--accent); }
+  .sub-del{ background:transparent; border:none; color:var(--ink-faint); cursor:pointer; font-size:16px; }
 
-  /* ---- modal ---- */
-  .modal-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(0,0,0,0.55); opacity:0; pointer-events:none; transition:opacity .25s ease; }
+  .modal-overlay{ position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); opacity:0; pointer-events:none; transition:opacity .2s; }
   .modal-overlay.show{ opacity:1; pointer-events:auto; }
-  .modal-card{ width:100%; max-width:340px; background:var(--glass-bg-strong); backdrop-filter:blur(24px) saturate(160%); -webkit-backdrop-filter:blur(24px) saturate(160%);
-    border:1px solid var(--glass-border); border-radius:20px; padding:22px; box-shadow:0 24px 60px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
-    transform:translateY(8px) scale(.98); transition:transform .25s cubic-bezier(.22,1,.36,1); }
-  .modal-overlay.show .modal-card{ transform:translateY(0) scale(1); }
-  .modal-card h2{ font-family:var(--font-display); font-weight:500; font-size:19px; color:var(--ink); margin:0 0 10px; letter-spacing:-0.01em; }
-  .modal-card p{ font-size:13.5px; line-height:1.5; color:var(--ink-dim); margin:0 0 16px; }
-  .modal-card .gate-input{ margin-bottom:8px; }
-  .modal-err{ color:#e07b74; font-size:12.5px; min-height:16px; margin:-2px 0 10px; }
-  .modal-actions{ display:flex; gap:10px; justify-content:flex-end; margin-top:6px; }
-  .modal-btn{ appearance:none; border:none; cursor:pointer; padding:9px 16px; border-radius:10px; font-weight:600; font-size:13px; transition:background .2s ease, opacity .2s ease; }
-  .modal-btn-ghost{ background:rgba(255,255,255,0.08); color:var(--ink-dim); }
-  .modal-btn-ghost:hover{ background:rgba(255,255,255,0.14); color:var(--ink); }
-  .modal-btn-danger{ background:#c0463f; color:#fff; }
-  .modal-btn-danger:hover{ background:#a83a34; }
+  .modal-card{ width:90%; max-width:340px; background:#18181B; border:1px solid var(--glass-border); border-radius:20px; padding:22px; }
+  .modal-actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:14px; }
+  .modal-btn{ padding:8px 14px; border-radius:8px; border:none; cursor:pointer; font-weight:600; }
+  .modal-btn-ghost{ background:rgba(255,255,255,0.1); color:#fff; }
   .modal-btn-primary{ background:var(--accent); color:#fff; }
-
-  .db-banner{ max-width:460px; margin:60px auto; text-align:center; color:var(--ink-dim); font-size:14px; line-height:1.6; padding:0 20px; }
-
-  @media (max-width:480px){
-    .row{ padding:12px 2px; gap:10px; }
-    .stat-grid{ gap:8px; }
-    .stat-box{ padding:12px 6px; }
-  }
+  .link-line{ margin-top:16px; text-align:center; }
+  .link-line button{ background:transparent; border:none; color:var(--ink-faint); cursor:pointer; text-decoration:underline; font-size:13px; }
 </style>
 </head>
 <body>
@@ -214,31 +155,24 @@
 
   <div class="top-bar">
     <div class="brand"><span class="dot"></span><span id="brand-label">체크리스트 제출함</span></div>
-    <button type="button" class="icon-btn" id="lock-btn" aria-label="관리자 모드">
+    <button type="button" class="icon-btn" id="lock-btn" aria-label="관리자">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
     </button>
   </div>
 
-  <div class="stage" id="stage">
-
-    <!-- ============ db 사용 불가 안내 ============ -->
-    <div class="db-banner" id="db-banner" style="display:none;">
-      공유 저장 기능을 불러오지 못했습니다.<br>
-      이 페이지가 Claude에서 게시된(Publish) 링크로 열렸는지 확인해주세요.
-    </div>
-
-    <!-- ============ 제출자: 이름 입력 게이트 ============ -->
+  <div class="stage">
+    <!-- 게이트 (이름 입력) -->
     <section class="screen" id="screen-gate">
       <div class="head"><h1 id="gate-title">체크리스트 제출함</h1><p id="gate-subtitle"></p></div>
       <div class="glass-card gate-card">
         <h2>제출자 정보</h2>
-        <p>이름 또는 구분값을 입력하면 관리자가 제출 현황에서 확인할 수 있어요.</p>
-        <input class="gate-input" id="gate-name-input" placeholder="이름 (예: 홍길동, 3팀 김OO)" maxlength="40">
+        <p>이름 또는 구분값을 입력하면 관리자가 확인할 수 있어요.</p>
+        <input class="gate-input" id="gate-name-input" placeholder="이름 (예: 홍길동)" maxlength="40">
         <button type="button" class="primary-btn" id="gate-start-btn">시작하기</button>
       </div>
     </section>
 
-    <!-- ============ 제출자: 체크리스트 ============ -->
+    <!-- 제출 화면 -->
     <section class="screen" id="screen-submit">
       <div class="head"><h1 id="submit-title">체크리스트 제출함</h1><p id="submit-subtitle"></p></div>
       <div class="progress-wrap">
@@ -252,556 +186,273 @@
         <div class="progress-caption" id="submit-caption">0 / 0 완료</div>
       </div>
       <div class="glass-card"><div id="submit-list"></div></div>
-      <div class="link-line"><button type="button" id="switch-person-btn">제출자 변경 (다른 이름으로 시작)</button></div>
+      <div class="link-line"><button type="button" id="switch-person-btn">제출자 변경</button></div>
     </section>
 
-    <!-- ============ 관리자 ============ -->
+    <!-- 관리자 모드 -->
     <section class="screen" id="screen-admin">
-      <div class="head"><h1>관리자 모드</h1><p>양식을 만들어 배포하고, 제출 현황을 확인하세요.</p></div>
-
+      <div class="head"><h1>관리자 모드</h1></div>
       <div class="tabs">
         <button type="button" class="tab-btn active" id="tab-btn-form">양식 관리</button>
         <button type="button" class="tab-btn" id="tab-btn-dash">제출 현황</button>
       </div>
 
-      <!-- 탭 1: 양식 관리 -->
       <div class="tab-panel active" id="tab-form">
         <div class="glass-card">
-          <div class="field-label">제목 / 부제목</div>
-          <input class="admin-title-input" id="admin-title" placeholder="체크리스트 제목">
-          <input class="admin-title-input" id="admin-subtitle" placeholder="부제목 (선택)">
+          <div style="font-size:12px; margin-bottom:6px; color:var(--ink-faint);">제목 / 부제목</div>
+          <input class="gate-input" id="admin-title" placeholder="제목">
+          <input class="gate-input" id="admin-subtitle" placeholder="부제목">
 
-          <div class="field-label">포인트 컬러</div>
+          <div style="font-size:12px; margin-bottom:6px; color:var(--ink-faint);">포인트 컬러</div>
           <div class="swatches" id="admin-swatches"></div>
 
-          <div class="switch-line">
-            <div class="field-label" style="margin:0;">표시 스타일</div>
-            <div class="grow"></div>
-            <div class="switcher" id="style-switcher">
-              <button type="button" data-style="toggle" class="active">토글형</button>
-              <button type="button" data-style="checkbox">체크박스형</button>
-            </div>
-          </div>
-
-          <div class="switch-line">
-            <button type="button" class="mini-toggle" id="admin-multi-toggle" aria-pressed="true"><span class="dot"></span></button>
-            <span>복수 선택 허용</span>
-            <div class="grow"></div>
-            <button type="button" class="pill-btn" id="admin-reset-btn">양식 초기화</button>
-          </div>
-
-          <div class="field-label">체크 항목</div>
+          <div style="font-size:12px; margin-bottom:6px; color:var(--ink-faint);">항목 관리</div>
           <div id="admin-item-list"></div>
-          <button type="button" class="add-btn" id="admin-add-btn">+ 항목 추가</button>
+          <button type="button" class="modal-btn modal-btn-ghost" id="admin-add-btn" style="width:100%; margin-top:10px;">+ 항목 추가</button>
         </div>
-
-        <div class="glass-card">
-          <div class="field-label">관리자 비밀번호 변경</div>
-          <input class="admin-title-input" id="admin-password-input" placeholder="새 비밀번호 (비워두면 기존 유지)" type="text" style="margin-bottom:6px;">
-          <div class="helper-note">이 비밀번호는 팀 내부 접근 허들용이며, 강력한 보안 장치는 아니에요. 또한 이 앱의 공유 데이터는 같은 조직(Anthropic 조직 계정)으로 로그인한 사람만 읽고 쓸 수 있어요.</div>
-        </div>
-
         <button type="button" class="primary-btn" id="admin-save-btn" style="margin-top:14px;">저장 및 배포</button>
       </div>
 
-      <!-- 탭 2: 제출 현황 -->
       <div class="tab-panel" id="tab-dash">
         <div class="stat-grid">
           <div class="stat-box"><div class="n" id="stat-count">0</div><div class="l">제출 인원</div></div>
           <div class="stat-box"><div class="n" id="stat-avg">0%</div><div class="l">평균 진행률</div></div>
-          <div class="stat-box"><div class="n" id="stat-complete">0</div><div class="l">완료(100%)</div></div>
+          <div class="stat-box"><div class="n" id="stat-complete">0</div><div class="l">완료 인원</div></div>
         </div>
-        <div class="dash-toolbar">
-          <input type="text" id="dash-search" placeholder="이름으로 검색">
-          <select id="dash-sort">
-            <option value="recent">최근 업데이트순</option>
-            <option value="pct-desc">진행률 높은순</option>
-            <option value="pct-asc">진행률 낮은순</option>
-            <option value="name">이름순</option>
-          </select>
-        </div>
-        <div class="glass-card">
-          <div id="dash-list"></div>
-          <div class="empty-note" id="dash-empty" style="display:none;">아직 제출한 사람이 없어요.</div>
-        </div>
+        <div class="glass-card"><div id="dash-list"></div></div>
       </div>
-
       <div class="link-line"><button type="button" id="admin-logout-btn">관리자 모드 종료</button></div>
     </section>
-
   </div>
 
   <!-- 관리자 로그인 모달 -->
-  <div class="modal-overlay" id="login-modal" aria-hidden="true">
+  <div class="modal-overlay" id="login-modal">
     <div class="modal-card">
-      <h2>관리자 모드</h2>
-      <p>관리자 비밀번호를 입력하세요.</p>
+      <h3 style="margin-top:0;">관리자 모드</h3>
       <input class="gate-input" id="login-pw-input" type="password" placeholder="비밀번호">
-      <div class="modal-err" id="login-err"></div>
       <div class="modal-actions">
-        <button type="button" class="modal-btn modal-btn-ghost" id="login-cancel-btn">취소</button>
+        <button type="button" class="modal-btn modal-btn-ghost" onclick="closeModal('login-modal')">취소</button>
         <button type="button" class="modal-btn modal-btn-primary" id="login-confirm-btn">확인</button>
       </div>
     </div>
   </div>
 
-  <!-- 초기화 확인 모달 -->
-  <div class="modal-overlay" id="reset-modal" aria-hidden="true">
-    <div class="modal-card">
-      <h2>양식 초기화</h2>
-      <p>제목·부제목·항목이 빈 기본값으로 되돌아갑니다. 아직 "저장 및 배포"를 누르기 전까지는 실제로 반영되지 않아요.</p>
-      <div class="modal-actions">
-        <button type="button" class="modal-btn modal-btn-ghost" id="reset-cancel-btn">취소</button>
-        <button type="button" class="modal-btn modal-btn-danger" id="reset-confirm-btn">초기화</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 사람 전환 확인 모달 -->
-  <div class="modal-overlay" id="switch-modal" aria-hidden="true">
-    <div class="modal-card">
-      <h2>제출자 변경</h2>
-      <p>이 브라우저에 저장된 제출자 정보를 지우고 새 이름으로 다시 시작할까요? 기존 제출 기록은 삭제되지 않아요.</p>
-      <div class="modal-actions">
-        <button type="button" class="modal-btn modal-btn-ghost" id="switch-cancel-btn">취소</button>
-        <button type="button" class="modal-btn modal-btn-danger" id="switch-confirm-btn">전환</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 제출 기록 삭제 확인 모달 -->
-  <div class="modal-overlay" id="delsub-modal" aria-hidden="true">
-    <div class="modal-card">
-      <h2>제출 기록 삭제</h2>
-      <p id="delsub-desc">이 사람의 제출 기록을 삭제할까요? 되돌릴 수 없어요.</p>
-      <div class="modal-actions">
-        <button type="button" class="modal-btn modal-btn-ghost" id="delsub-cancel-btn">취소</button>
-        <button type="button" class="modal-btn modal-btn-danger" id="delsub-confirm-btn">삭제</button>
-      </div>
-    </div>
-  </div>
-
 <script>
-const PALETTE = ['#203F9A','#4E7CB2','#94C2DA','#E84797','#F1642E','#A3B565','#504E76','#C4C3E3'];
-const DEFAULT_PASSWORD = 'admin1234';
-const SUBID_KEY = 'checklist-submit-subId-v1';
-const SUBNAME_KEY = 'checklist-submit-name-v1';
-const ADMIN_SESSION_KEY = 'checklist-admin-authed-v1';
+// ================= [Supabase 연결 설정] =================
+const SUPABASE_URL = 'https://zwuklkzgndfxvhghxmqj.supabase.co';
+// 아래 따옴표 안에 복사해두신 키(service_role 또는 anon 키)를 붙여넣으세요!
+const SUPABASE_KEY = 'YOUR_SUPABASE_KEY'; 
 
-function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function newId(){ return 'it_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
-function newSubId(){
-  try{ return crypto.randomUUID(); }catch(e){ return 'sub_' + Date.now().toString(36) + Math.random().toString(36).slice(2,10); }
-}
-function defaultConfig(){
-  return {
-    title:'체크리스트 제출함', subtitle:'', accent:'#4E7CB2', style:'toggle', multi:true,
-    items:[ {id:newId(), text:''}, {id:newId(), text:''}, {id:newId(), text:''}, {id:newId(), text:''} ],
-    password: DEFAULT_PASSWORD, updatedAt: Date.now()
-  };
-}
-function timeAgo(ts){
-  if(!ts) return '';
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff/60000);
-  if(min < 1) return '방금 전';
-  if(min < 60) return min+'분 전';
-  const hr = Math.floor(min/60);
-  if(hr < 24) return hr+'시간 전';
-  return Math.floor(hr/24)+'일 전';
-}
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const PALETTE = ['#203F9A','#4E7CB2','#94C2DA','#E84797','#F1642E','#A3B565','#504E76','#C4C3E3'];
+let config = { title: '체크리스트 제출함', subtitle: '', accent: '#4E7CB2', style: 'toggle', multi: true, items: [], password: 'admin1234' };
+let subId = localStorage.getItem('subId') || null;
+let subName = localStorage.getItem('subName') || null;
+let mySub = null;
+let isAdmin = false;
+
 function showNotice(msg){
   const el = document.getElementById('save-indicator');
   el.textContent = msg; el.classList.add('show');
-  clearTimeout(showNotice._t);
-  showNotice._t = setTimeout(()=>{ el.classList.remove('show'); }, 1800);
+  setTimeout(()=> el.classList.remove('show'), 1500);
 }
+
 function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  const el = document.getElementById(id); if(el) el.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
 }
-function openModal(id){ const m=document.getElementById(id); m.classList.add('show'); m.setAttribute('aria-hidden','false'); }
-function closeModal(id){ const m=document.getElementById(id); m.classList.remove('show'); m.setAttribute('aria-hidden','true'); }
-document.querySelectorAll('.modal-overlay').forEach(m=>{
-  m.addEventListener('click', (e)=>{ if(e.target===m) closeModal(m.id); });
-});
-document.addEventListener('keydown', (e)=>{
-  if(e.key !== 'Escape') return;
-  document.querySelectorAll('.modal-overlay.show').forEach(m=>closeModal(m.id));
-});
 
-let db = null;
-let config = defaultConfig();
-let configExists = false;
-let subId = localStorage.getItem(SUBID_KEY) || null;
-let subName = localStorage.getItem(SUBNAME_KEY) || null;
-let mySubmission = null;
-let isAdmin = sessionStorage.getItem(ADMIN_SESSION_KEY) === '1';
-let draftConfig = null;
-let allSubmissions = [];
-let unsubMySub = null;
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
-const RING_CIRC = 2 * Math.PI * 50;
-
-function applyAccent(){ document.documentElement.style.setProperty('--accent', config.accent || '#4E7CB2'); }
-
-function renderHeader(){
-  document.getElementById('brand-label').textContent = config.title || '체크리스트 제출함';
-  document.getElementById('gate-title').textContent = config.title || '체크리스트 제출함';
+async function loadConfig(){
+  const { data } = await db.from('checklist_config').select('*').eq('id', 1).single();
+  if(data) {
+    config = { ...config, ...data };
+    if(!config.items || config.items.length === 0){
+      config.items = [{id:'1', text:'첫 번째 할 일'}, {id:'2', text:'두 번째 할 일'}];
+    }
+  }
+  document.documentElement.style.setProperty('--accent', config.accent);
+  document.getElementById('brand-label').textContent = config.title;
+  document.getElementById('gate-title').textContent = config.title;
   document.getElementById('gate-subtitle').textContent = config.subtitle || '';
-  document.getElementById('submit-title').textContent = config.title || '체크리스트 제출함';
+  document.getElementById('submit-title').textContent = config.title;
   document.getElementById('submit-subtitle').textContent = config.subtitle || '';
 }
 
-/* ---------------- 제출자 화면 ---------------- */
-function renderSubmitChecklist(){
-  const checks = (mySubmission && mySubmission.checks) || {};
+async function startSubmitting(){
+  const name = document.getElementById('gate-name-input').value.trim();
+  if(!name) return;
+  const { data } = await db.from('submissions').insert({ name, checks: {} }).select().single();
+  if(data){
+    subId = data.id; subName = name;
+    localStorage.setItem('subId', subId);
+    localStorage.setItem('subName', subName);
+    enterSubmitter();
+  }
+}
+
+async function enterSubmitter(){
+  showScreen('screen-submit');
+  const { data } = await db.from('submissions').select('*').eq('id', subId).single();
+  mySub = data || { checks: {} };
+  renderSubmit();
+}
+
+function renderSubmit(){
+  const checks = mySub?.checks || {};
   const items = config.items || [];
-  const total = items.length;
-  const checkedCount = items.filter(it=>checks[it.id]).length;
-  const pct = total ? Math.round(checkedCount/total*100) : 0;
-  const ring = document.getElementById('submit-ring');
-  ring.style.strokeDashoffset = RING_CIRC - (RING_CIRC*pct/100);
-  document.getElementById('submit-ring-num').textContent = pct+'%';
-  document.getElementById('submit-caption').textContent = `${checkedCount} / ${total} 완료`;
+  const checked = items.filter(it => checks[it.id]).length;
+  const pct = items.length ? Math.round(checked / items.length * 100) : 0;
+  
+  const circ = 2 * Math.PI * 50;
+  document.getElementById('submit-ring').style.strokeDashoffset = circ - (circ * pct / 100);
+  document.getElementById('submit-ring-num').textContent = pct + '%';
+  document.getElementById('submit-caption').textContent = `${checked} / ${items.length} 완료`;
 
   const list = document.getElementById('submit-list');
-  const isCheckbox = config.style === 'checkbox';
-  list.innerHTML = items.map(it=>{
+  list.innerHTML = items.map(it => {
     const on = !!checks[it.id];
-    const ctrl = isCheckbox
-      ? `<button type="button" class="checkbox-sq" aria-pressed="${on}" data-id="${it.id}" aria-label="항목 체크"><svg viewBox="0 0 24 24"><polyline points="4,13 9,18 20,6"/></svg></button>`
-      : `<button type="button" class="toggle-sw" aria-pressed="${on}" data-id="${it.id}" aria-label="항목 선택"><span class="thumb"></span></button>`;
-    return `<div class="row" data-checked="${on}">${ctrl}<div class="row-label">${escHtml(it.text) || '<span style=\"color:var(--ink-faint)\">(빈 항목)</span>'}</div></div>`;
-  }).join('') || '<div class="empty-note">아직 관리자가 항목을 추가하지 않았어요.</div>';
-
-  list.querySelectorAll('.toggle-sw, .checkbox-sq').forEach(btn=>{
-    btn.addEventListener('click', ()=>toggleMyItem(btn.dataset.id));
-  });
+    return `
+      <div class="row" data-checked="${on}">
+        <button type="button" class="toggle-sw" aria-pressed="${on}" onclick="toggleItem('${it.id}')"><span class="thumb"></span></button>
+        <div class="row-label">${it.text}</div>
+      </div>
+    `;
+  }).join('');
 }
 
-function toggleMyItem(itemId){
-  if(!db || !subId) return;
-  const checks = {...((mySubmission && mySubmission.checks) || {})};
-  const willOn = !checks[itemId];
-  if(!config.multi && willOn){ Object.keys(checks).forEach(k=>{ checks[k] = false; }); }
-  checks[itemId] = willOn;
-  mySubmission = {...(mySubmission||{}), checks, updatedAt: Date.now()};
-  renderSubmitChecklist();
-  db.collection('submissions').doc(subId).update({checks, updatedAt: Date.now()})
-    .then(()=>showNotice('저장됨'))
-    .catch(()=>showNotice('저장 실패 · 다시 시도해주세요'));
+async function toggleItem(id){
+  const checks = { ...(mySub?.checks || {}) };
+  checks[id] = !checks[id];
+  mySub.checks = checks;
+  renderSubmit();
+  await db.from('submissions').update({ checks, updated_at: new Date().toISOString() }).eq('id', subId);
+  showNotice('저장됨');
 }
 
-async function enterAsSubmitter(){
-  showScreen('screen-submit');
-  renderHeader();
-  if(unsubMySub) unsubMySub();
-  unsubMySub = db.collection('submissions').doc(subId).onSnapshot(snap=>{
-    mySubmission = snap.exists ? snap.data() : {id:subId, name:subName, checks:{}};
-    renderSubmitChecklist();
-  }, ()=>{ showNotice('실시간 연결에 문제가 있어요'); });
-}
+// 관리자 로직
+document.getElementById('lock-btn').onclick = () => {
+  if(isAdmin) showAdmin();
+  else openModal('login-modal');
+};
 
-async function startSubmitting(name){
-  const trimmed = name.trim();
-  if(!trimmed) return;
-  subId = subId || newSubId();
-  localStorage.setItem(SUBID_KEY, subId);
-  localStorage.setItem(SUBNAME_KEY, trimmed);
-  subName = trimmed;
-  const ref = db.collection('submissions').doc(subId);
-  try{
-    const snap = await ref.get();
-    if(snap.exists){ await ref.update({name: trimmed, updatedAt: Date.now()}); }
-    else{ await ref.set({id:subId, name: trimmed, checks:{}, updatedAt: Date.now()}); }
-  }catch(e){ showNotice('제출자 등록에 실패했어요 · 다시 시도해주세요'); return; }
-  enterAsSubmitter();
-}
-
-document.getElementById('gate-start-btn').addEventListener('click', ()=>{
-  startSubmitting(document.getElementById('gate-name-input').value);
-});
-document.getElementById('gate-name-input').addEventListener('keydown', (e)=>{
-  if(e.key==='Enter'){ e.preventDefault(); startSubmitting(e.currentTarget.value); }
-});
-document.getElementById('switch-person-btn').addEventListener('click', ()=>openModal('switch-modal'));
-document.getElementById('switch-cancel-btn').addEventListener('click', ()=>closeModal('switch-modal'));
-document.getElementById('switch-confirm-btn').addEventListener('click', ()=>{
-  localStorage.removeItem(SUBID_KEY); localStorage.removeItem(SUBNAME_KEY);
-  subId = null; subName = null; mySubmission = null;
-  if(unsubMySub){ unsubMySub(); unsubMySub = null; }
-  closeModal('switch-modal');
-  document.getElementById('gate-name-input').value = '';
-  showScreen('screen-gate');
-});
-
-/* ---------------- 관리자: 로그인 ---------------- */
-document.getElementById('lock-btn').addEventListener('click', ()=>{
-  if(isAdmin){ showAdminScreen(); return; }
-  document.getElementById('login-pw-input').value = '';
-  document.getElementById('login-err').textContent = '';
-  openModal('login-modal');
-  document.getElementById('login-pw-input').focus();
-});
-document.getElementById('login-cancel-btn').addEventListener('click', ()=>closeModal('login-modal'));
-async function tryAdminLogin(){
-  if(!db) return;
+document.getElementById('login-confirm-btn').onclick = () => {
   const pw = document.getElementById('login-pw-input').value;
-  const errEl = document.getElementById('login-err');
-  const ref = db.doc('app/config');
-  try{
-    const snap = await ref.get();
-    if(snap.exists){
-      const cfg = snap.data();
-      if(pw === (cfg.password || DEFAULT_PASSWORD)){
-        config = normalizeConfig(cfg); configExists = true; applyAccent();
-        loginSuccess();
-      } else { errEl.textContent = '비밀번호가 올바르지 않아요.'; }
-    } else {
-      if(pw === DEFAULT_PASSWORD){
-        const initial = defaultConfig();
-        await ref.set(initial);
-        config = initial; configExists = true; applyAccent();
-        loginSuccess();
-      } else { errEl.textContent = '비밀번호가 올바르지 않아요. (최초 설정 비밀번호는 admin1234 입니다)'; }
-    }
-  }catch(e){ errEl.textContent = '확인 중 오류가 발생했어요. 다시 시도해주세요.'; }
-}
-document.getElementById('login-confirm-btn').addEventListener('click', tryAdminLogin);
-document.getElementById('login-pw-input').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); tryAdminLogin(); } });
+  if(pw === config.password || pw === 'admin1234'){
+    isAdmin = true;
+    closeModal('login-modal');
+    showAdmin();
+  } else {
+    alert('비밀번호가 맞지 않습니다.');
+  }
+};
 
-function loginSuccess(){
-  isAdmin = true; sessionStorage.setItem(ADMIN_SESSION_KEY, '1');
-  closeModal('login-modal');
-  showAdminScreen();
-  subscribeSubmissionsList();
-}
-document.getElementById('admin-logout-btn').addEventListener('click', ()=>{
-  isAdmin = false; sessionStorage.removeItem(ADMIN_SESSION_KEY);
-  if(subId){ enterAsSubmitter(); } else { showScreen('screen-gate'); }
-});
-
-/* ---------------- 관리자: 양식 관리 ---------------- */
-function normalizeConfig(cfg){
-  const c = defaultConfig();
-  return {
-    title: cfg.title || c.title,
-    subtitle: cfg.subtitle || '',
-    accent: cfg.accent || c.accent,
-    style: cfg.style === 'checkbox' ? 'checkbox' : 'toggle',
-    multi: cfg.multi !== false,
-    items: Array.isArray(cfg.items) && cfg.items.length ? cfg.items.map(it=>({id: it.id || newId(), text: it.text || ''})) : c.items,
-    password: cfg.password || DEFAULT_PASSWORD,
-    updatedAt: cfg.updatedAt || Date.now()
-  };
-}
-function showAdminScreen(){
-  draftConfig = JSON.parse(JSON.stringify(config));
+function showAdmin(){
   showScreen('screen-admin');
-  renderAdminForm();
-  switchAdminTab('form');
-}
-function renderAdminForm(){
-  document.getElementById('admin-title').value = draftConfig.title;
-  document.getElementById('admin-subtitle').value = draftConfig.subtitle;
-  document.getElementById('admin-multi-toggle').setAttribute('aria-pressed', String(draftConfig.multi));
-  document.getElementById('admin-password-input').value = '';
-  document.querySelectorAll('#style-switcher button').forEach(b=>{
-    b.classList.toggle('active', b.dataset.style === draftConfig.style);
-  });
-  buildAdminSwatches();
+  document.getElementById('admin-title').value = config.title;
+  document.getElementById('admin-subtitle').value = config.subtitle || '';
+  
+  // 색상 팔레트
+  const sw = document.getElementById('admin-swatches');
+  sw.innerHTML = PALETTE.map(c => `<button style="background:${c}" class="${config.accent===c?'active':''}" onclick="setAccent('${c}')"></button>`).join('');
+
+  // 항목 리스트
   renderAdminItems();
+  loadDashboard();
 }
-function buildAdminSwatches(){
-  const el = document.getElementById('admin-swatches');
-  el.innerHTML = PALETTE.map(c=>`<button type="button" data-c="${c}" style="background:${c}" class="${c.toLowerCase()===draftConfig.accent.toLowerCase()?'active':''}" aria-label="포인트 컬러"></button>`).join('');
-  el.querySelectorAll('button').forEach(sw=>{
-    sw.addEventListener('click', ()=>{
-      draftConfig.accent = sw.dataset.c;
-      el.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===sw));
-      document.documentElement.style.setProperty('--accent', sw.dataset.c);
-    });
-  });
+
+function setAccent(c){
+  config.accent = c;
+  document.documentElement.style.setProperty('--accent', c);
+  showAdmin();
 }
+
 function renderAdminItems(){
   const list = document.getElementById('admin-item-list');
-  list.innerHTML = draftConfig.items.map((it,i)=>`
+  list.innerHTML = config.items.map((it, i) => `
     <div class="row">
-      <input class="row-input" data-i="${i}" placeholder="항목을 입력하세요" value="${escHtml(it.text)}">
-      <button type="button" class="row-del" data-i="${i}" aria-label="항목 삭제">×</button>
+      <input class="row-input" value="${it.text}" oninput="config.items[${i}].text = this.value">
+      <button class="row-del" onclick="config.items.splice(${i},1); renderAdminItems();">×</button>
     </div>
   `).join('');
-  list.querySelectorAll('.row-input').forEach(inp=>{
-    inp.addEventListener('input', ()=>{ draftConfig.items[+inp.dataset.i].text = inp.value; });
-    inp.addEventListener('keydown', (e)=>{
-      if(e.key !== 'Enter') return; e.preventDefault();
-      const i = +inp.dataset.i;
-      draftConfig.items.splice(i+1, 0, {id:newId(), text:''});
-      renderAdminItems();
-      const next = list.querySelector(`.row-input[data-i="${i+1}"]`); if(next) next.focus();
-    });
-  });
-  list.querySelectorAll('.row-del').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const i = +btn.dataset.i;
-      draftConfig.items.splice(i,1);
-      if(draftConfig.items.length===0) draftConfig.items.push({id:newId(), text:''});
-      renderAdminItems();
-    });
-  });
 }
-document.getElementById('admin-add-btn').addEventListener('click', ()=>{
-  draftConfig.items.push({id:newId(), text:''});
+
+document.getElementById('admin-add-btn').onclick = () => {
+  config.items.push({ id: 'it_' + Date.now(), text: '' });
   renderAdminItems();
-  const list = document.getElementById('admin-item-list');
-  const last = list.querySelector(`.row-input[data-i="${draftConfig.items.length-1}"]`); if(last) last.focus();
-});
-document.getElementById('style-switcher').addEventListener('click', (e)=>{
-  const btn = e.target.closest('button[data-style]'); if(!btn) return;
-  draftConfig.style = btn.dataset.style;
-  document.querySelectorAll('#style-switcher button').forEach(b=>b.classList.toggle('active', b===btn));
-});
-document.getElementById('admin-multi-toggle').addEventListener('click', (e)=>{
-  draftConfig.multi = !draftConfig.multi;
-  e.currentTarget.setAttribute('aria-pressed', String(draftConfig.multi));
-});
-document.getElementById('admin-reset-btn').addEventListener('click', ()=>openModal('reset-modal'));
-document.getElementById('reset-cancel-btn').addEventListener('click', ()=>closeModal('reset-modal'));
-document.getElementById('reset-confirm-btn').addEventListener('click', ()=>{
-  const blank = defaultConfig();
-  draftConfig.title = blank.title; draftConfig.subtitle = blank.subtitle;
-  draftConfig.items = blank.items; draftConfig.multi = true; draftConfig.style = 'toggle';
-  renderAdminForm();
-  document.documentElement.style.setProperty('--accent', draftConfig.accent);
-  closeModal('reset-modal');
-  showNotice('초기화됨 · 저장 및 배포를 눌러야 실제로 반영돼요');
-});
-document.getElementById('admin-save-btn').addEventListener('click', async ()=>{
-  if(!db) return;
-  draftConfig.title = document.getElementById('admin-title').value.trim() || '체크리스트 제출함';
-  draftConfig.subtitle = document.getElementById('admin-subtitle').value.trim();
-  const newPw = document.getElementById('admin-password-input').value.trim();
-  if(newPw) draftConfig.password = newPw;
-  draftConfig.items = draftConfig.items.filter(it=>true); // ids already stable
-  draftConfig.updatedAt = Date.now();
-  try{
-    await db.doc('app/config').set(draftConfig);
-    config = JSON.parse(JSON.stringify(draftConfig));
-    configExists = true;
-    showNotice('배포 완료 · 제출자에게 즉시 반영돼요');
-  }catch(e){ showNotice('저장 실패 · 다시 시도해주세요'); }
-});
+};
 
-/* ---------------- 관리자: 탭 전환 ---------------- */
-function switchAdminTab(name){
-  document.getElementById('tab-btn-form').classList.toggle('active', name==='form');
-  document.getElementById('tab-btn-dash').classList.toggle('active', name==='dash');
-  document.getElementById('tab-form').classList.toggle('active', name==='form');
-  document.getElementById('tab-dash').classList.toggle('active', name==='dash');
-  if(name==='dash') renderDashboard();
-}
-document.getElementById('tab-btn-form').addEventListener('click', ()=>switchAdminTab('form'));
-document.getElementById('tab-btn-dash').addEventListener('click', ()=>switchAdminTab('dash'));
+document.getElementById('admin-save-btn').onclick = async () => {
+  config.title = document.getElementById('admin-title').value;
+  config.subtitle = document.getElementById('admin-subtitle').value;
+  await db.from('checklist_config').update(config).eq('id', 1);
+  showNotice('배포 완료');
+  loadConfig();
+};
 
-/* ---------------- 관리자: 대시보드 ---------------- */
-let unsubSubs = null;
-function subscribeSubmissionsList(){
-  if(!db || unsubSubs) return;
-  unsubSubs = db.collection('submissions').onSnapshot(snap=>{
-    allSubmissions = snap.docs.map(d=>d.data());
-    renderDashboard();
-  }, ()=>{ showNotice('제출 현황 실시간 연결에 문제가 있어요'); });
-}
-function computeRows(){
-  const items = config.items || [];
-  const total = items.length;
-  return allSubmissions.map(s=>{
-    const checks = s.checks || {};
-    const checked = items.filter(it=>checks[it.id]).length;
-    const pct = total ? Math.round(checked/total*100) : 0;
-    return { id:s.id, name: s.name || '(이름 없음)', checked, total, pct, updatedAt: s.updatedAt||0 };
-  });
-}
-let delTargetId = null;
-function renderDashboard(){
-  const rows = computeRows();
-  const count = rows.length;
-  const avg = count ? Math.round(rows.reduce((a,r)=>a+r.pct,0)/count) : 0;
-  const completeCount = rows.filter(r=>r.total>0 && r.pct===100).length;
-  document.getElementById('stat-count').textContent = count;
-  document.getElementById('stat-avg').textContent = avg+'%';
-  document.getElementById('stat-complete').textContent = completeCount;
-
-  const q = (document.getElementById('dash-search').value || '').trim().toLowerCase();
-  const sort = document.getElementById('dash-sort').value;
-  let filtered = rows.filter(r=>!q || r.name.toLowerCase().includes(q));
-  filtered.sort((a,b)=>{
-    if(sort==='pct-desc') return b.pct - a.pct;
-    if(sort==='pct-asc') return a.pct - b.pct;
-    if(sort==='name') return a.name.localeCompare(b.name, 'ko');
-    return b.updatedAt - a.updatedAt;
-  });
-
+async function loadDashboard(){
+  const { data } = await db.from('submissions').select('*').order('updated_at', { ascending: false });
+  const subs = data || [];
+  document.getElementById('stat-count').textContent = subs.length;
+  
+  const total = config.items.length;
+  let comp = 0;
   const list = document.getElementById('dash-list');
-  document.getElementById('dash-empty').style.display = filtered.length ? 'none' : 'block';
-  list.innerHTML = filtered.map(r=>`
-    <div class="sub-row">
-      <div style="min-width:0;">
-        <div class="sub-name">${escHtml(r.name)}</div>
-        <div class="sub-time">${r.checked}/${r.total} · ${timeAgo(r.updatedAt)}</div>
+  list.innerHTML = subs.map(s => {
+    const cCount = config.items.filter(it => s.checks && s.checks[it.id]).length;
+    const pct = total ? Math.round(cCount / total * 100) : 0;
+    if(pct === 100) comp++;
+    return `
+      <div class="sub-row">
+        <div><div class="sub-name">${s.name}</div><div class="sub-time">${cCount}/${total}</div></div>
+        <div class="sub-bar-wrap"><div class="sub-bar-fill" style="width:${pct}%"></div></div>
+        <div style="font-size:12px; font-weight:bold; width:35px; text-align:right;">${pct}%</div>
+        <button class="sub-del" onclick="delSub('${s.id}')">×</button>
       </div>
-      <div class="sub-bar-wrap"><div class="sub-bar-track"><div class="sub-bar-fill" style="width:${r.pct}%"></div></div></div>
-      <div class="sub-pct">${r.pct}%</div>
-      <button type="button" class="sub-del" data-id="${r.id}" data-name="${escHtml(r.name)}" aria-label="삭제">×</button>
-    </div>
-  `).join('');
-  list.querySelectorAll('.sub-del').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      delTargetId = btn.dataset.id;
-      document.getElementById('delsub-desc').textContent = `"${btn.dataset.name}"님의 제출 기록을 삭제할까요? 되돌릴 수 없어요.`;
-      openModal('delsub-modal');
-    });
-  });
-}
-document.getElementById('dash-search').addEventListener('input', renderDashboard);
-document.getElementById('dash-sort').addEventListener('change', renderDashboard);
-document.getElementById('delsub-cancel-btn').addEventListener('click', ()=>{ delTargetId=null; closeModal('delsub-modal'); });
-document.getElementById('delsub-confirm-btn').addEventListener('click', async ()=>{
-  if(delTargetId && db){
-    try{ await db.collection('submissions').doc(delTargetId).delete(); }catch(e){ showNotice('삭제 실패'); }
-  }
-  delTargetId = null; closeModal('delsub-modal');
-});
-
-/* ---------------- 초기화 ---------------- */
-function subscribeConfig(){
-  db.doc('app/config').onSnapshot(snap=>{
-    if(snap.exists){ config = normalizeConfig(snap.data()); configExists = true; }
-    else{ config = defaultConfig(); configExists = false; }
-    applyAccent();
-    renderHeader();
-    if(document.getElementById('screen-submit').classList.contains('active')) renderSubmitChecklist();
-  }, ()=>{ showNotice('양식 실시간 연결에 문제가 있어요'); });
+    `;
+  }).join('') || '<div style="text-align:center; color:var(--ink-faint); padding:20px;">제출 내역이 없습니다.</div>';
+  document.getElementById('stat-complete').textContent = comp;
 }
 
-(async function init(){
-  try{ db = await claude.use('db'); }catch(e){ db = null; }
-  if(!db){
-    document.getElementById('db-banner').style.display = 'block';
-    return;
+async function delSub(id){
+  if(confirm('삭제하시겠습니까?')){
+    await db.from('submissions').delete().eq('id', id);
+    loadDashboard();
   }
-  subscribeConfig();
-  applyAccent();
-  renderHeader();
-  if(isAdmin){
-    showAdminScreen();
-    subscribeSubmissionsList();
-  } else if(subId && subName){
-    enterAsSubmitter();
-  } else {
-    showScreen('screen-gate');
-  }
+}
+
+// 탭 전환
+document.getElementById('tab-btn-form').onclick = () => {
+  document.getElementById('tab-btn-form').classList.add('active');
+  document.getElementById('tab-btn-dash').classList.remove('active');
+  document.getElementById('tab-form').classList.add('active');
+  document.getElementById('tab-dash').classList.remove('active');
+};
+document.getElementById('tab-btn-dash').onclick = () => {
+  document.getElementById('tab-btn-dash').classList.add('active');
+  document.getElementById('tab-btn-form').classList.remove('active');
+  document.getElementById('tab-dash').classList.add('active');
+  document.getElementById('tab-form').classList.remove('active');
+  loadDashboard();
+};
+
+document.getElementById('gate-start-btn').onclick = startSubmitting;
+document.getElementById('switch-person-btn').onclick = () => {
+  localStorage.clear(); subId = null; showScreen('screen-gate');
+};
+document.getElementById('admin-logout-btn').onclick = () => {
+  isAdmin = false;
+  subId ? enterSubmitter() : showScreen('screen-gate');
+};
+
+// 시작
+(async () => {
+  await loadConfig();
+  if(subId) enterSubmitter();
+  else showScreen('screen-gate');
 })();
 </script>
 </body>
